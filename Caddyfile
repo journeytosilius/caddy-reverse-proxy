@@ -1,13 +1,15 @@
 # global options
 {
-	admin off
-	persist_config off
-	auto_https off
+	admin off 
+	persist_config off 
+	auto_https off 
+	
 	log {
-		format json
+		format json 
 	}
+	
 	servers {
-		trusted_proxies static private_ranges
+		trusted_proxies static private_ranges 
 	}
 }
 
@@ -25,30 +27,16 @@
 	unhealthy_request_count 200
 }
 
-# Reusable frontend upstream block (same as your original)
-(frontend_proxy) {
-	reverse_proxy {
-		dynamic a {
-			name {$FRONTEND_DOMAIN}
-			port {$FRONTEND_PORT}
-			refresh 1s
-			dial_timeout 30s
-			versions ipv4 ipv6
-		}
-
-		import lb_settings
-		import passive_health_checks
-		header_up Host {upstream_hostport}
-	}
-}
-
-# site block
 :{$PORT} {
 	log {
 		format json
 	}
 
-	# --- 1) BACKEND API (unchanged) ---
+	# ---------------------------------------------------------
+	# BLOCK 1: Backend API (Public / No Basic Auth)
+	# ---------------------------------------------------------
+	# We handle this FIRST. Requests starting with /api/ enter here.
+	# We do NOT add basicauth in this block.
 	handle_path {$BACKEND_PATH:/api}/* {
 		reverse_proxy {
 			dynamic a {
@@ -58,28 +46,36 @@
 				dial_timeout 30s
 				versions ipv4 ipv6
 			}
-
 			import lb_settings
 			import passive_health_checks
 			header_up Host {upstream_hostport}
 		}
 	}
 
-	# --- 2) STATIC ASSETS (NO BASIC AUTH) ---
-	@assets {
-		path /assets/* /favicon.ico /logo.svg /manifest.json /robots.txt
-		path_regexp static \.(js|css|map|png|jpg|jpeg|gif|svg|webp|ico)$
-	}
-	handle @assets {
-		import frontend_proxy
-	}
-
-	# --- 3) SPA ROUTES (BASIC AUTH ONLY HERE) ---
+	# ---------------------------------------------------------
+	# BLOCK 2: Frontend SPA (Protected by Basic Auth)
+	# ---------------------------------------------------------
+	# 'handle' without a path acts as a "catch-all" for anything 
+	# that wasn't matched by the API block above.
 	handle {
+		# This effectively protects index.html and assets
 		basicauth {
+			# IMPORTANT: The value in this ENV var must be a Bcrypt Hash, not plaintext.
+			# Example: $2a$14$Z...
 			{$BASIC_AUTH_USER} {$BASIC_AUTH_PASS}
 		}
 
-		import frontend_proxy
+		reverse_proxy {
+			dynamic a {
+				name {$FRONTEND_DOMAIN}
+				port {$FRONTEND_PORT}
+				refresh 1s
+				dial_timeout 30s
+				versions ipv4 ipv6
+			}
+			import lb_settings
+			import passive_health_checks
+			header_up Host {upstream_hostport}
+		}
 	}
 }
