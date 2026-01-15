@@ -25,19 +25,15 @@
 	unhealthy_request_count 200
 }
 
-# Site block listening on Railway-assigned $PORT
 :{$PORT} {
-	# access logs
 	log {
 		format json
 	}
 
-	# Frontend (UI) default route
-	handle /* {
+	# ✅ Data API proxy FIRST so it actually matches
+	handle /markets/* {
 		reverse_proxy {
-			dynamic a {
-				name {$FRONTEND_DOMAIN}
-				port {$FRONTEND_PORT}
+			dynamic a {$DATA_API_DOMAIN} {$DATA_API_PORT} {
 				refresh 1s
 				dial_timeout 30s
 				versions ipv4 ipv6
@@ -48,12 +44,10 @@
 		}
 	}
 
-	# Data API proxy (kept private; only exposed via this path)
-	handle /markets/* {
+	# ✅ Frontend fallback (matches everything else)
+	handle {
 		reverse_proxy {
-			dynamic a {
-				name {$DATA_API_DOMAIN}
-				port {$DATA_API_PORT}
+			dynamic a {$FRONTEND_DOMAIN} {$FRONTEND_PORT} {
 				refresh 1s
 				dial_timeout 30s
 				versions ipv4 ipv6
