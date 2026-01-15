@@ -33,7 +33,7 @@
 	# ✅ Data API proxy FIRST so it actually matches
 	handle /markets/* {
 		reverse_proxy {
-			dynamic a {$BACKEND_DOMAIN} {$BACKEND_DOMAIN} {
+			dynamic a {$BACKEND_DOMAIN} {$BACKEND_PORT} {
 				refresh 1s
 				dial_timeout 30s
 				versions ipv4 ipv6
