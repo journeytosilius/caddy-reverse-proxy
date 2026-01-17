@@ -23,8 +23,6 @@
 	handle /healthz {
 		respond "ok" 200
 	}
-
-	# ✅ Backend API (KEEP /graph prefix)
 	handle /graph/* {
 		reverse_proxy {$BACKEND_DOMAIN}:{$BACKEND_PORT} {
 			header_up Host {$BACKEND_DOMAIN}
@@ -33,8 +31,14 @@
 			}
 		}
 	}
-
-	# ✅ Backend API (KEEP /markets prefix)
+	handle /rollups/* {
+		reverse_proxy {$BACKEND_DOMAIN}:{$BACKEND_PORT} {
+			header_up Host {$BACKEND_DOMAIN}
+			transport http {
+				dial_timeout 30s
+			}
+		}
+	}
 	handle /markets/* {
 		reverse_proxy {$BACKEND_DOMAIN}:{$BACKEND_PORT} {
 			header_up Host {$BACKEND_DOMAIN}
@@ -43,8 +47,6 @@
 			}
 		}
 	}
-
-	# ✅ Frontend fallback
 	handle {
 		reverse_proxy {$FRONTEND_DOMAIN}:{$FRONTEND_PORT} {
 			header_up Host {$FRONTEND_DOMAIN}
