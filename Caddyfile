@@ -1,4 +1,3 @@
-# Global options
 {
 	admin off
 	persist_config off
@@ -14,43 +13,47 @@
 }
 
 :{$PORT} {
+	bind 0.0.0.0
+
 	log {
 		format json
 	}
 
-	# ✅ Data API proxy routes (strip /graph prefix)
+	# ✅ Health endpoint (Railway-friendly)
+	handle /healthz {
+		respond "ok" 200
+	}
+
+	# ✅ Data API proxy routes (strip /graph)
 	handle_path /graph/* {
 		reverse_proxy {$BACKEND_DOMAIN}:{$BACKEND_PORT} {
-			# forward correct host (instead of IP:port)
+			# Send correct host header (not IP:port)
 			header_up Host {$BACKEND_DOMAIN}
 
 			transport http {
 				dial_timeout 30s
-				versions ipv4
 			}
 		}
 	}
 
-	# ✅ Data API proxy routes (strip /markets prefix)
+	# ✅ Data API proxy routes (strip /markets)
 	handle_path /markets/* {
 		reverse_proxy {$BACKEND_DOMAIN}:{$BACKEND_PORT} {
 			header_up Host {$BACKEND_DOMAIN}
 
 			transport http {
 				dial_timeout 30s
-				versions ipv4
 			}
 		}
 	}
 
-	# ✅ Frontend fallback (everything else)
+	# ✅ Frontend fallback
 	handle {
 		reverse_proxy {$FRONTEND_DOMAIN}:{$FRONTEND_PORT} {
 			header_up Host {$FRONTEND_DOMAIN}
 
 			transport http {
 				dial_timeout 30s
-				versions ipv4
 			}
 		}
 	}
