@@ -29,8 +29,6 @@
 	log {
 		format json
 	}
-
-	# ✅ Data API proxy routes
 	handle /graph/* {
 		reverse_proxy {
 			dynamic a {$BACKEND_DOMAIN} {$BACKEND_PORT} {
@@ -57,7 +55,6 @@
 		}
 	}
 
-	# ✅ Frontend fallback (matches everything else)
 	handle {
 		reverse_proxy {
 			dynamic a {$FRONTEND_DOMAIN} {$FRONTEND_PORT} {
